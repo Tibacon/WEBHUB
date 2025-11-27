@@ -14,4 +14,4 @@ This web application aims to simplify web browsing by providing a place to organ
 ### Francais
 ### English
 
-## wiki https://github.com/Tibacon/WEBHUB.wiki.git
+## [wiki https://github.com/Tibacon/WEBHUB.wiki.git](https://github.com/Tibacon/WEBHUB/wiki)
