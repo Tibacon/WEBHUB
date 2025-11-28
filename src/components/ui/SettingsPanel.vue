@@ -89,19 +89,16 @@ function addWidget(type) {
 
 function applyBackground() {
   if (backgroundUrl.value) {
-    console.log('Applying background:', backgroundUrl.value)
     themeStore.setBackground(backgroundUrl.value)
     backgroundUrl.value = ''
   }
 }
 
 function setPresetBackground(url) {
-  console.log('Setting preset background:', url)
   themeStore.setBackground(url)
 }
 
 function removeBackground() {
-  console.log('Removing background')
   themeStore.setBackground('')
 }
 </script>

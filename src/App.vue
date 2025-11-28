@@ -14,22 +14,16 @@ onMounted(() => {
 
 // Observer les changements de fond d'écran
 watch(background, (newBg) => {
-  console.log('Background changed to:', newBg)
   const appElement = document.querySelector('.app')
-  console.log('App element:', appElement)
   if (appElement) {
     if (newBg) {
-      console.log('Applying background image')
       appElement.style.backgroundImage = `url(${newBg})`
       appElement.style.backgroundSize = 'cover'
       appElement.style.backgroundPosition = 'center'
       appElement.style.backgroundRepeat = 'no-repeat'
     } else {
-      console.log('Removing background image')
       appElement.style.backgroundImage = ''
     }
-  } else {
-    console.log('App element not found!')
   }
 }, { immediate: true })
 </script>

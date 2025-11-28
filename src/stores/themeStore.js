@@ -19,14 +19,20 @@ export const useThemeStore = defineStore('theme', () => {
 
     if (savedBg) background.value = savedBg
     if (savedTheme) theme.value = savedTheme
-    if (savedColors) customColors.value = JSON.parse(savedColors)
+    if (savedColors) {
+      try {
+        customColors.value = JSON.parse(savedColors)
+      } catch (error) {
+        console.error('Erreur lors du chargement des couleurs:', error)
+      }
+    }
 
     applyTheme()
   }
 
   // Appliquer le thème au document
   function applyTheme() {
-    const appElement = document.querySelector('#app')
+    const appElement = document.querySelector('.app')
     if (appElement) {
       if (background.value) {
         appElement.style.backgroundImage = `url(${background.value})`

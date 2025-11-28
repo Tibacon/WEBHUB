@@ -8,33 +8,44 @@ export const useWidgetsStore = defineStore('widgets', () => {
   function loadWidgets() {
     const saved = localStorage.getItem('webhub_widgets')
     if (saved) {
-      widgets.value = JSON.parse(saved)
+      try {
+        widgets.value = JSON.parse(saved)
+      } catch (error) {
+        console.error('Erreur lors du chargement des widgets:', error)
+        // Utiliser la configuration par défaut en cas d'erreur
+        loadDefaultWidgets()
+      }
     } else {
-      // Configuration par défaut avec quelques widgets
-      widgets.value = [
-        {
-          id: Date.now() + 1,
-          type: 'clock',
-          position: { x: 0, y: 0 },
-          size: { width: 2, height: 2 }
-        },
-        {
-          id: Date.now() + 2,
-          type: 'todo',
-          position: { x: 2, y: 0 },
-          size: { width: 2, height: 3 },
-          data: { tasks: [] }
-        },
-        {
-          id: Date.now() + 3,
-          type: 'notes',
-          position: { x: 0, y: 2 },
-          size: { width: 2, height: 3 },
-          data: { content: '' }
-        }
-      ]
-      saveWidgets()
+      loadDefaultWidgets()
     }
+  }
+
+  // Charger les widgets par défaut
+  function loadDefaultWidgets() {
+    // Configuration par défaut avec quelques widgets
+    widgets.value = [
+      {
+        id: Date.now() + 1,
+        type: 'clock',
+        position: { x: 0, y: 0 },
+        size: { width: 2, height: 2 }
+      },
+      {
+        id: Date.now() + 2,
+        type: 'todo',
+        position: { x: 2, y: 0 },
+        size: { width: 2, height: 3 },
+        data: { tasks: [] }
+      },
+      {
+        id: Date.now() + 3,
+        type: 'notes',
+        position: { x: 0, y: 2 },
+        size: { width: 2, height: 3 },
+        data: { content: '' }
+      }
+    ]
+    saveWidgets()
   }
 
   // Sauvegarder dans localStorage
