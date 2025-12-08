@@ -49,6 +49,7 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   gap: 12px;
+  overflow: hidden;
 }
 
 .time {

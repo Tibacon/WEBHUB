@@ -1,67 +1,123 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { STORAGE_KEYS } from '../constants'
+
+const DEFAULT_COLORS = {
+  primary: '#646cff',
+  secondary: '#42b883',
+  background: '#242424',
+  text: '#ffffff'
+}
 
 export const useThemeStore = defineStore('theme', () => {
   const background = ref('')
   const theme = ref('default')
-  const customColors = ref({
-    primary: '#646cff',
-    secondary: '#42b883',
-    background: '#242424',
-    text: '#ffffff'
-  })
+  const customColors = ref({ ...DEFAULT_COLORS })
 
-  // Charger les préférences depuis localStorage
-  function loadTheme() {
-    const savedBg = localStorage.getItem('webhub_background')
-    const savedTheme = localStorage.getItem('webhub_theme')
-    const savedColors = localStorage.getItem('webhub_colors')
-
-    if (savedBg) background.value = savedBg
-    if (savedTheme) theme.value = savedTheme
-    if (savedColors) {
-      try {
-        customColors.value = JSON.parse(savedColors)
-      } catch (error) {
-        console.error('Erreur lors du chargement des couleurs:', error)
-      }
+  /**
+   * Validate URL format (basic check)
+   * @param {string} url - URL to validate
+   * @returns {boolean} True if URL is valid
+   */
+  function isValidUrl(url) {
+    if (!url) return true // Empty is valid (removes background)
+    try {
+      const parsedUrl = new URL(url)
+      return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:'
+    } catch {
+      return false
     }
-
-    applyTheme()
   }
 
-  // Appliquer le thème au document
+  /**
+   * Load theme preferences from localStorage
+   */
+  function loadTheme() {
+    try {
+      const savedBg = localStorage.getItem(STORAGE_KEYS.BACKGROUND)
+      const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME)
+
+      if (savedBg && isValidUrl(savedBg)) {
+        background.value = savedBg
+      }
+
+      if (savedTheme) {
+        theme.value = savedTheme
+      }
+
+      applyTheme()
+    } catch (error) {
+      console.error('Error loading theme:', error)
+    }
+  }
+
+  /**
+   * Apply theme to document
+   * Updates background image and styles on the app element
+   */
   function applyTheme() {
     const appElement = document.querySelector('.app')
-    if (appElement) {
-      if (background.value) {
-        appElement.style.backgroundImage = `url(${background.value})`
-        appElement.style.backgroundSize = 'cover'
-        appElement.style.backgroundPosition = 'center'
-        appElement.style.backgroundAttachment = 'fixed'
-      } else {
-        appElement.style.backgroundImage = ''
-      }
+    if (!appElement) {
+      console.warn('App element not found')
+      return
+    }
+
+    if (background.value) {
+      appElement.style.backgroundImage = `url(${background.value})`
+      appElement.style.backgroundSize = 'cover'
+      appElement.style.backgroundPosition = 'center'
+      appElement.style.backgroundAttachment = 'fixed'
+    } else {
+      appElement.style.backgroundImage = ''
     }
   }
 
-  // Changer le fond d'écran
+  /**
+   * Set background image
+   * @param {string} url - Background image URL (empty string to remove)
+   * @returns {boolean} Success status
+   */
   function setBackground(url) {
-    background.value = url
-    localStorage.setItem('webhub_background', url)
-    applyTheme()
+    if (!isValidUrl(url)) {
+      console.error('Invalid background URL:', url)
+      return false
+    }
+
+    try {
+      background.value = url
+      localStorage.setItem(STORAGE_KEYS.BACKGROUND, url)
+      applyTheme()
+      return true
+    } catch (error) {
+      console.error('Error setting background:', error)
+      return false
+    }
   }
 
-  // Changer le thème
+  /**
+   * Set theme
+   * @param {string} newTheme - Theme name
+   */
   function setTheme(newTheme) {
-    theme.value = newTheme
-    localStorage.setItem('webhub_theme', newTheme)
+    try {
+      theme.value = newTheme
+      localStorage.setItem(STORAGE_KEYS.THEME, newTheme)
+    } catch (error) {
+      console.error('Error setting theme:', error)
+    }
   }
 
-  // Mettre à jour les couleurs personnalisées
+  /**
+   * Update custom colors
+   * @param {Object} colors - Color values to update
+   */
   function setCustomColors(colors) {
-    customColors.value = { ...customColors.value, ...colors }
-    localStorage.setItem('webhub_colors', JSON.stringify(customColors.value))
+    try {
+      customColors.value = { ...customColors.value, ...colors }
+      localStorage.setItem('webhub_colors', JSON.stringify(customColors.value))
+    } catch (error) {
+      console.error('Error setting custom colors:', error)
+    }
   }
 
   return {
