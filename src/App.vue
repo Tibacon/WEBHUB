@@ -1,14 +1,18 @@
 <script setup>
 import { onMounted, watch } from 'vue'
+import { useUserStore } from './stores/userStore'
 import { storeToRefs } from 'pinia'
 import WidgetGrid from './components/layout/WidgetGrid.vue'
 import SettingsPanel from './components/ui/SettingsPanel.vue'
+import UserPanel from './components/ui/UserPanel.vue'
 import { useThemeStore } from './stores/themeStore'
 
 const themeStore = useThemeStore()
 const { background } = storeToRefs(themeStore)
+const userStore = useUserStore()
 
 onMounted(() => {
+  userStore.loadUser()
   themeStore.loadTheme()
 })
 
@@ -31,6 +35,7 @@ watch(background, (newBg) => {
 <template>
   <div class="app">
     <WidgetGrid />
+    <UserPanel />
     <SettingsPanel />
   </div>
 </template>

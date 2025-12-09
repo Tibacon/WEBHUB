@@ -1,15 +1,73 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { STORAGE_KEYS, DEFAULT_WIDGET_SIZE, WIDGET_SIZE_LIMITS } from '../constants'
+import { ref, watch } from 'vue'
+import { STORAGE_KEYS, DEFAULT_WIDGET_SIZE, WIDGET_SIZE_LIMITS, supabase } from '../constants/index'
+import { useUserStore } from './userStore'
 
 export const useWidgetsStore = defineStore('widgets', () => {
+  // --- ACCÈS AU USER STORE ---
+  const userStore = useUserStore()
+
+  // --- STATE ---
   const widgets = ref([])
 
+  // --- HELPERS DB ---
+
   /**
-   * Load widgets from localStorage
-   * Falls back to default widgets if loading fails or no data exists
+   * Sauvegarde les widgets dans Supabase (colonne JSONB)
    */
-  function loadWidgets() {
+  async function saveToSupabase() {
+    // On ne fait rien si l'utilisateur n'est pas connecté
+    if (!userStore.user) return
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ widgets: widgets.value })
+        .eq('id', userStore.user.id)
+
+      if (error) throw error
+    } catch (err) {
+      console.error('Erreur sync widgets Supabase:', err.message)
+    }
+  }
+
+  /**
+   * Récupère les widgets depuis Supabase
+   */
+  async function fetchFromSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('widgets')
+        .eq('id', userStore.user.id)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+
+      if (data && data.widgets) {
+        // On vérifie que c'est bien un tableau avant de l'appliquer
+        if (Array.isArray(data.widgets) && data.widgets.length > 0) {
+          widgets.value = data.widgets
+          // On met à jour le local storage pour être synchro
+          localStorage.setItem(STORAGE_KEYS.WIDGETS, JSON.stringify(widgets.value))
+        } else if (widgets.value.length > 0) {
+          // Cas particulier : Si la DB est vide (ex: nouveau compte) mais qu'on a des widgets locaux,
+          // on envoie les widgets locaux vers le cloud pour ne pas perdre la config de l'utilisateur.
+          saveToSupabase()
+        }
+      }
+    } catch (err) {
+      console.error('Erreur chargement widgets Supabase:', err.message)
+    }
+  }
+
+  // --- ACTIONS ---
+
+  /**
+   * Load widgets (Hybrid: Local First -> Cloud Update)
+   */
+  async function loadWidgets() {
+    // 1. Charge le LocalStorage (Immédiat)
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.WIDGETS)
       if (saved) {
@@ -26,12 +84,13 @@ export const useWidgetsStore = defineStore('widgets', () => {
       console.error('Error loading widgets:', error)
       loadDefaultWidgets()
     }
+
+    // 2. Si connecté, on sync avec le Cloud
+    if (userStore.user) {
+      await fetchFromSupabase()
+    }
   }
 
-  /**
-   * Load default widget configuration
-   * Creates a starter layout with clock, todo, and notes widgets
-   */
   function loadDefaultWidgets() {
     const timestamp = Date.now()
     widgets.value = [
@@ -61,12 +120,17 @@ export const useWidgetsStore = defineStore('widgets', () => {
   }
 
   /**
-   * Save widgets to localStorage
-   * @returns {boolean} Success status
+   * Save widgets (Local + Cloud)
+   * Cette fonction est appelée par toutes les actions de modification
    */
   function saveWidgets() {
     try {
+      // 1. Sauvegarde Locale (Synchrone & Rapide)
       localStorage.setItem(STORAGE_KEYS.WIDGETS, JSON.stringify(widgets.value))
+      
+      // 2. Sauvegarde Cloud (Asynchrone & Silencieuse)
+      saveToSupabase()
+      
       return true
     } catch (error) {
       console.error('Error saving widgets:', error)
@@ -74,11 +138,6 @@ export const useWidgetsStore = defineStore('widgets', () => {
     }
   }
 
-  /**
-   * Add a new widget to the dashboard
-   * @param {string} type - Widget type (clock, todo, notes, weather, news, calendar)
-   * @returns {Object} The newly created widget
-   */
   function addWidget(type) {
     const newWidget = {
       id: Date.now(),
@@ -92,20 +151,11 @@ export const useWidgetsStore = defineStore('widgets', () => {
     return newWidget
   }
 
-  /**
-   * Remove a widget from the dashboard
-   * @param {number} id - Widget ID to remove
-   */
   function removeWidget(id) {
     widgets.value = widgets.value.filter(w => w.id !== id)
     saveWidgets()
   }
 
-  /**
-   * Update widget position
-   * @param {number} id - Widget ID
-   * @param {Object} position - New position {x, y}
-   */
   function updateWidgetPosition(id, position) {
     const widget = widgets.value.find(w => w.id === id)
     if (widget) {
@@ -114,15 +164,9 @@ export const useWidgetsStore = defineStore('widgets', () => {
     }
   }
 
-  /**
-   * Update widget size with validation
-   * @param {number} id - Widget ID
-   * @param {Object} size - New size {width, height}
-   */
   function updateWidgetSize(id, size) {
     const widget = widgets.value.find(w => w.id === id)
     if (widget) {
-      // Validate size constraints
       const validatedSize = {
         width: Math.max(WIDGET_SIZE_LIMITS.MIN, Math.min(WIDGET_SIZE_LIMITS.MAX, size.width)),
         height: Math.max(WIDGET_SIZE_LIMITS.MIN, Math.min(WIDGET_SIZE_LIMITS.MAX, size.height))
@@ -132,11 +176,6 @@ export const useWidgetsStore = defineStore('widgets', () => {
     }
   }
 
-  /**
-   * Update widget data
-   * @param {number} id - Widget ID
-   * @param {Object} data - Data to merge with existing widget data
-   */
   function updateWidgetData(id, data) {
     const widget = widgets.value.find(w => w.id === id)
     if (widget) {
@@ -145,11 +184,6 @@ export const useWidgetsStore = defineStore('widgets', () => {
     }
   }
 
-  /**
-   * Reorder widgets (for drag & drop)
-   * @param {number} oldIndex - Original index
-   * @param {number} newIndex - New index
-   */
   function reorderWidgets(oldIndex, newIndex) {
     if (oldIndex < 0 || oldIndex >= widgets.value.length ||
         newIndex < 0 || newIndex >= widgets.value.length) {
@@ -163,6 +197,14 @@ export const useWidgetsStore = defineStore('widgets', () => {
     widgets.value = widgetsCopy
     saveWidgets()
   }
+
+  // --- WATCHER ---
+  // Dès que l'utilisateur se connecte, on récupère sa configuration Cloud
+  watch(() => userStore.user, (newUser) => {
+    if (newUser) {
+      fetchFromSupabase()
+    }
+  })
 
   return {
     widgets,

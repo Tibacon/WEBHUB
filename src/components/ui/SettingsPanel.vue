@@ -138,39 +138,11 @@ function togglePanel() {
 }
 
 function setAccentColor(color) {
+  // On met à jour la variable locale pour l'UI 
   currentAccent.value = color
-  document.documentElement.style.setProperty('--accent', color)
-
-  // Calculer la couleur hover (plus foncée)
-  const hoverColor = adjustColor(color, -20)
-  document.documentElement.style.setProperty('--accent-hover', hoverColor)
-
-  // Calculer la couleur light (transparente)
-  const rgb = hexToRgb(color)
-  document.documentElement.style.setProperty('--accent-light', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`)
-
-  // Sauvegarder dans localStorage
-  localStorage.setItem('webhub_accent_color', color)
-}
-
-function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : { r: 59, g: 130, b: 246 }
-}
-
-function adjustColor(hex, percent) {
-  const rgb = hexToRgb(hex)
-  const adjust = (value) => Math.max(0, Math.min(255, value + (value * percent / 100)))
-
-  const r = Math.round(adjust(rgb.r)).toString(16).padStart(2, '0')
-  const g = Math.round(adjust(rgb.g)).toString(16).padStart(2, '0')
-  const b = Math.round(adjust(rgb.b)).toString(16).padStart(2, '0')
-
-  return `#${r}${g}${b}`
+  
+  // On appel la fonction du store 
+  themeStore.setCustomColors({ primary: color })
 }
 
 // Charger la couleur d'accent sauvegardée

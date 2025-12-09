@@ -1,8 +1,22 @@
+import { createClient } from '@supabase/supabase-js'
+
 /**
- * Application-wide constants
+ * ------------------------------------------------------------------
+ * 1. CONFIGURATION SUPABASE
+ * ------------------------------------------------------------------
+ */
+const supabaseUrl = 'https://tvjzmhyvfjswipaxnych.supabase.co'
+const supabaseKey = 'sb_publishable_vbL7_Iz8YcyyVm-7n8GPQA_zg-9zLKJ'
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+/**
+ * ------------------------------------------------------------------
+ * 2. CONSTANTES DE L'APPLICATION
+ * ------------------------------------------------------------------
  */
 
-// LocalStorage keys
+// LocalStorage keys (utilisées aussi pour faire référence aux champs JSON en DB)
 export const STORAGE_KEYS = {
   WIDGETS: 'webhub_widgets',
   THEME: 'webhub_theme',
