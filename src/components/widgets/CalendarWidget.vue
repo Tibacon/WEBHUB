@@ -83,15 +83,16 @@ const props = defineProps({
 const widgetsStore = useWidgetsStore()
 const currentDate = ref(new Date())
 const selectedDate = ref(null)
-const events = ref([])
 const newEventText = ref('')
 const newEventTime = ref('')
 
 const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-onMounted(() => {
-  if (props.widget.data?.events && Array.isArray(props.widget.data.events)) {
-    events.value = props.widget.data.events
+// Utiliser computed pour que events soit toujours synchronisé avec le store
+const events = computed({
+  get: () => props.widget.data?.events || [],
+  set: (value) => {
+    widgetsStore.updateWidgetData(props.widget.id, { events: value })
   }
 })
 
@@ -115,12 +116,14 @@ const selectedDateString = computed(() => {
 const selectedDateEvents = computed(() => {
   if (!selectedDate.value) return []
   const dateString = selectedDate.value.fullDate.toDateString()
-  return events.value.filter(e => new Date(e.date).toDateString() === dateString)
+  const allEvents = events.value || []
+  return allEvents.filter(e => new Date(e.date).toDateString() === dateString)
 })
 
 function getEventsForDate(date) {
   const dateString = date.toDateString()
-  return events.value.filter(e => new Date(e.date).toDateString() === dateString)
+  const allEvents = events.value || []
+  return allEvents.filter(e => new Date(e.date).toDateString() === dateString)
 }
 
 const calendarDates = computed(() => {
@@ -174,26 +177,22 @@ function selectDate(date) {
 function addEvent() {
   if (!newEventText.value.trim() || !selectedDate.value) return
 
-  events.value.push({
+  const newEvent = {
     id: Date.now(),
     text: newEventText.value,
     time: newEventTime.value,
     date: selectedDate.value.fullDate.toISOString(),
     type: 'manual'
-  })
+  }
+
+  events.value = [...events.value, newEvent]
 
   newEventText.value = ''
   newEventTime.value = ''
-  saveData()
 }
 
 function deleteEvent(id) {
   events.value = events.value.filter(e => e.id !== id)
-  saveData()
-}
-
-function saveData() {
-  widgetsStore.updateWidgetData(props.widget.id, { events: events.value })
 }
 
 function previousMonth() {

@@ -79,16 +79,23 @@ const sortedTasks = computed(() => {
 
 function addTask() {
   if (newTask.value.trim()) {
+    // Convertir la date au fuseau horaire local pour éviter le décalage UTC
+    let taskDate = null
+    if (newTaskDate.value) {
+      const [year, month, day] = newTaskDate.value.split('-')
+      taskDate = new Date(year, month - 1, day).toISOString()
+    }
+
     const task = {
       id: Date.now(),
       text: newTask.value,
       completed: false,
-      date: newTaskDate.value || null
+      date: taskDate
     }
     tasks.value.push(task)
 
     // Add to calendar if date is set
-    if (newTaskDate.value) {
+    if (taskDate) {
       addToCalendar(task)
     }
 
@@ -123,7 +130,7 @@ function addToCalendar(task) {
   events.push({
     id: `todo-${task.id}`,
     text: task.text,
-    date: new Date(task.date).toISOString(),
+    date: task.date, // Utiliser directement task.date qui est déjà en ISO
     type: 'todo',
     todoId: task.id
   })
